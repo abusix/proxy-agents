@@ -27,6 +27,7 @@ type ConnectOpts<T> = {
 export type HttpsProxyAgentOptions<T> = ConnectOpts<T> &
 	http.AgentOptions & {
 		headers?: OutgoingHttpHeaders | (() => OutgoingHttpHeaders);
+		requestRejectUnauthorized?: boolean;
 	};
 
 /**
@@ -47,6 +48,7 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
 	readonly proxy: URL;
 	proxyHeaders: OutgoingHttpHeaders | (() => OutgoingHttpHeaders);
 	connectOpts: net.TcpNetConnectOpts & tls.ConnectionOptions;
+	requestRejectUnauthorized: boolean;
 
 	constructor(proxy: Uri | URL, opts?: HttpsProxyAgentOptions<Uri>) {
 		super(opts);
@@ -72,6 +74,8 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
 			host,
 			port,
 		};
+		this.requestRejectUnauthorized =
+			opts?.requestRejectUnauthorized ?? true;
 	}
 
 	/**
@@ -149,7 +153,8 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
 				const servername = opts.servername || opts.host;
 				return tls.connect({
 					...omit(opts, 'host', 'path', 'port'),
-					socket,
+					rejectUnauthorized: this.requestRejectUnauthorized,
+					socket: socket,
 					servername,
 				});
 			}
